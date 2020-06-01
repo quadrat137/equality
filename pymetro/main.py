@@ -1,3 +1,4 @@
+from pymetro.get_price_data import get_price_data
 from pymetro.println import println
 from pymetro.types import *
 from pymetro.data import *
@@ -5,8 +6,9 @@ from pymetro.data import *
 
 class Main:
     links = {}
-    max_stations = 7
+    max_stations = 12
     max_time = 60 * 30  # 30 minutes in seconds
+    max_price = 60000
 
     def __init__(self):
         self.route = []
@@ -29,11 +31,33 @@ class Main:
         # print('\ntarget\n', target)
         visited_with_route_from_target = self.get_visited_tree(target)
         intersection = visited_with_route_from_source.keys() & visited_with_route_from_target.keys()
-        println(intersection)
+
+        price_data = get_price_data()
+        result = []
         for item in intersection:
-            print('===========')
-            print(visited_with_route_from_target[item])
-            print(visited_with_route_from_source[item])
+            route_from_target = visited_with_route_from_target[item]
+            route_from_source = visited_with_route_from_source[item]
+            if route_from_source.seconds > self.max_time:
+                print(f'{item} слишком далеко от {source} - {route_from_source.minutes()}')
+                continue
+            elif route_from_target.seconds > self.max_time:
+                print(f'{item} слишком далеко от {source} - {route_from_target.minutes()}')
+                continue
+
+            if item not in price_data:
+                print(f'Нет цен по {item}')
+                continue
+            if price_data[item] > self.max_price:
+                print(f'{item} слишком дорого - {price_data[item]}')
+                continue
+
+            result_line = f'Метро {item.name}, ' \
+                          f'до {source.name} {len(route_from_source.stations)} остановок, {route_from_source.minutes()} минут ' \
+                          f'до {target.name} {len(route_from_target.stations)} остановок, {route_from_target.minutes()} минут ' \
+                          f'средняя цена {price_data[item]} руб.'
+            result.append(result_line)
+
+        println(result)
 
     def get_visited_tree(self, station):
         station_route_map = {station: Route([station], 0)}
@@ -49,14 +73,9 @@ class Main:
             for link in self.links[station.id]:
                 adjacent = Station(link.dest)
                 if adjacent not in result:
-                    result[adjacent] = Route(route.stations.copy(), route.min)
+                    result[adjacent] = Route(route.stations.copy(), route.seconds)
                     result[adjacent].stations.append(adjacent)
-                    result[adjacent].min += link.time
-                # else:
-                #     if result[adjacent].min > (route.min + link.time):
-                #         result[adjacent] = visited_route_map[adjacent]
-                #         result[adjacent].stations.append(adjacent)
-                #         result[adjacent].min += link.time
+                    result[adjacent].seconds += link.time
 
         return result
 
