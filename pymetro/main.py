@@ -8,7 +8,8 @@ class Main:
     links = {}
     max_stations = 12
     max_time = 60 * 30  # 30 minutes in seconds
-    max_price = 60000
+    max_price = 40000
+    exclude_lines = [7, 5]
 
     def __init__(self):
         self.route = []
@@ -42,6 +43,9 @@ class Main:
                 continue
             elif route_from_target.seconds > self.max_time:
                 print(f'{item} слишком далеко от {source} - {route_from_target.minutes()}')
+                continue
+            if item.line.id in self.exclude_lines:
+                print(f'{item} на линии {item.line}')
                 continue
 
             if item not in price_data:
@@ -83,4 +87,4 @@ class Main:
 if __name__ == "__main__":
     # execute only if run as a script
     main = Main()
-    main.print_stations(source=Station(158), target=Station(63))
+    main.print_stations(source=Station(158), target=Station(47))
